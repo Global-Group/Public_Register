@@ -88,9 +88,9 @@ contract BasicCompany is IBasicCompany {
 		_;
 	}
 
-	constructor(string _tokenName, string _tokenSymbol, uint256 _totalSupply) public {
-		companyName = _tokenName;
-		thisCompanyToken = new CompanyToken(_tokenName, _tokenSymbol, _totalSupply);
+	constructor(string _companyName, string _companySymbol) public {
+		companyName = _companyName;
+		thisCompanyToken = new CompanyToken(_companyName, _companySymbol);
 		thisCompanyExchanger = new CompanyExchanger(thisCompanyToken);
 	}
 	
@@ -107,7 +107,7 @@ contract BasicCompany is IBasicCompany {
 		
 	}
 	
-	function activateCompany() public payable onlyOwners returns(bool){ //todo modifier
+	/*function activateCompany() public payable onlyOwners returns(bool){ //todo modifier
 		require(msg.value == ICompanyToken(thisCompanyToken).totalSupply());
 		thisCompanyExchanger.transfer(msg.value);
 		ICompanyToken(thisCompanyToken).transfer(msg.sender, ICompanyToken(thisCompanyToken).totalSupply());
@@ -115,7 +115,7 @@ contract BasicCompany is IBasicCompany {
 		emit ActivateCompany(msg.sender, msg.value);
 		
 		return ICompanyToken(thisCompanyToken).activate();
-	}
+	}*/
 	
 	function increaseCapital() public payable onlyOwners returns(bool) {
 		require(msg.value > 0); 
@@ -182,12 +182,12 @@ contract CompanyToken is ICompanyToken {
 	}
 
 	/* Initializes contract with initial supply tokens to the creator of the contract */
-	constructor(string _tokenName, string _tokenSymbol, uint256 _totalSupply_) public {
+	constructor(string _tokenName, string _tokenSymbol) public {
 		basicCompanyController = msg.sender;
 		name = _tokenName;                                   	// Set the name for display purposes
 		symbol = _tokenSymbol;                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = _totalSupply_.mul(10 ** decimals);
+		_totalSupply = 1;
 		balances[msg.sender] = _totalSupply;
 		functional = false;
 	}
@@ -338,6 +338,7 @@ contract CompanyExchanger is ICompanyExchanger {
 	constructor(address _token) public {
 		basicCompanyController = msg.sender;
 		thisExchangerToken = _token;
+		tokenPriceCalculator();
 	}
 
 	function() public payable {
