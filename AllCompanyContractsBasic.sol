@@ -1,4 +1,4 @@
-pragma solidity ^0.4.22;
+pragma solidity ^0.4.20;
 
 library SafeMath {
 
@@ -35,7 +35,7 @@ contract ERC20 {
   function balanceOf(address who) public view returns (uint256);
   function transfer(address to, uint256 value) public returns (bool);
   function allowance(address owner, address spender) public view returns (uint256);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
+  function burnFrom(address from,  uint256 value) public returns (bool);
   function approve(address spender, uint256 value) public returns (bool);
   
   event Transfer(address indexed from, address indexed to, uint256 value);
@@ -76,6 +76,8 @@ contract ICompanyExchanger {
 }
 
 contract BasicCompany is IBasicCompany {
+    using SafeMath for uint256;
+    
 	address public thisCompanyExchanger;
 	address public thisCompanyToken;
 		
@@ -124,7 +126,7 @@ contract BasicCompany is IBasicCompany {
 		return ICompanyToken(thisCompanyToken).mint(msg.sender, tokens);
 	}
 	
-	function payTo(address who, uint256 weiAmount) public onlyOwners returns(bool) {
+	function payFromCompanyTo(address who, uint256 weiAmount) public onlyOwners returns(bool) {
 		uint256 tokens = ICompanyExchanger(thisCompanyExchanger)._withdraw(weiAmount);
 		ICompanyToken(thisCompanyToken).burn(msg.sender, tokens);
 		who.transfer(weiAmount);
@@ -144,7 +146,7 @@ contract CompanyToken is ICompanyToken {
 	string public name;
 	string public symbol;
 	
-	uint8 public decimals;
+	uint256 public decimals;
 	
 	uint256 public _totalSupply;
 	
@@ -177,7 +179,7 @@ contract CompanyToken is ICompanyToken {
 		name = _tokenName;                                   	// Set the name for display purposes
 		symbol = _tokenSymbol;                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = _totalSupply_.mul(uint256(10 ** decimals));
+		_totalSupply = _totalSupply_.mul(10 ** decimals);
 		balances[msg.sender] = _totalSupply;
 		functional = false;
 	}
@@ -275,13 +277,14 @@ contract CompanyToken is ICompanyToken {
 		return true;
 	}
 	
-    function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
-        require(_value <= allowance[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
-        totalSupply -= _value;                              // Update totalSupply
-        Burn(_from, _value);
+    function burnFrom(address _from, uint256 _value) public onlyController returns (bool success) {
+        require(balances[_from] >= _value);                // Check if the targeted balance is enough
+        require(_value <= allowed[_from][msg.sender]);    // Check allowance
+        balances[_from] = balances[_from].sub(_value);                         // Subtract from the targeted balance
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
+        _totalSupply = _totalSupply.sub(_value);                              // Update totalSupply
+		emit Transfer(_from, address(0), _value);
+        emit Burn(_from, _value);
         return true;
     }
 	
