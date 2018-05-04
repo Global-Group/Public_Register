@@ -189,21 +189,21 @@ contract CompanyToken is ICompanyToken {
 		decimals = 18;                            					// Amount of decimals for display purposes
 		_totalSupply = 1;
 		balances[msg.sender] = _totalSupply;
-		functional = false;
+		functional = true;
 	}
 	
 	function() payable public {
 		revert();
 	}
 	
-	function activate() public onlyController returns(bool) {
+	/*function activate() public onlyController returns(bool) {
 		require(functional == false);
 		functional = true;
 		
 		emit Activate(msg.sender, functional); 
 		
 		return functional;
-	}
+	}*/
 
 	function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {
 		return _transfer(msg.sender, _to, _value);
