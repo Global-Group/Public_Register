@@ -95,16 +95,7 @@ contract BasicCompany is IBasicCompany {
 	}
 	
 	function() public payable {
-		if(msg.sender == thisCompanyExchanger) {
-			
-		} else {
-			payToCompany(msg.value);
-		}
-	}
-	
-	function payToCompany(uint256 _amountInWei) public {
-		thisCompanyExchanger.transfer(_amountInWei);
-		
+
 	}
 	
 	/*function activateCompany() public payable onlyOwners returns(bool){ //todo modifier
@@ -136,7 +127,7 @@ contract BasicCompany is IBasicCompany {
 	function payFromOwnerNameTo(address _fromNameOf, address to, uint256 weiAmount) public returns(bool) {
 	    require(ICompanyToken(thisCompanyToken).allowance(_fromNameOf ,msg.sender) > 0);
 		uint256 tokens = ICompanyExchanger(thisCompanyExchanger)._withdraw(weiAmount);
-		ICompanyToken(thisCompanyToken).burnFrom(_fromNameOf, tokens);
+		ICompanyToken(thisCompanyToken).burnFrom(_fromNameOf, msg.sender, tokens);
 		to.transfer(weiAmount);
 		emit DecreaseCapital(msg.sender, tokens);
 	}
@@ -159,9 +150,7 @@ contract CompanyToken is ICompanyToken {
 	uint256 public _totalSupply;
 	
 	address public basicCompanyController;
-	
-	bool public functional;
-	
+		
 	/* This creates an array with all balances */
 	mapping (address => uint256) public balances;
     mapping (address => mapping (address => uint256)) internal allowed;
@@ -222,7 +211,6 @@ contract CompanyToken is ICompanyToken {
 		require(_value > 0);
 		require (balances[_from] >= _value);                								// Check if the sender has enough
 		require (balances[_to].add(_value) > balances[_to]); 								// Check for overflows
-		require(functional == true);
 		
 		uint256 previousBalances = balances[_from].add(balances[_to]);						// Save this for an assertion in the future
 		
@@ -292,19 +280,19 @@ contract CompanyToken is ICompanyToken {
 		return true;
 	}
 	
-    function burnFrom(address _from, uint256 _value) public onlyController returns (bool success) {
+    function burnFrom(address _from, address who, uint256 _value) public onlyController returns (bool success) {
         require(balances[_from] >= _value);                // Check if the targeted balance is enough
-        require(_value <= allowed[_from][msg.sender]);    // Check allowance
+        require(_value <= allowed[_from][who]);    // Check allowance
         balances[_from] = balances[_from].sub(_value);                         // Subtract from the targeted balance
-        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
+        allowed[_from][who] = allowed[_from][who].sub(_value);             // Subtract from the sender's allowance
         _totalSupply = _totalSupply.sub(_value);                              // Update totalSupply
+		require(_totalSupply > 0);
 		emit Transfer(_from, address(0), _value);
         emit Burn(_from, _value);
         return true;
     }
 	
 	function companyClose() public onlyController {
-		functional = false;
 		selfdestruct(msg.sender);
 	}
   
