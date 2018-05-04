@@ -177,7 +177,7 @@ contract CompanyToken is ICompanyToken {
 		name = _tokenName;                                   	// Set the name for display purposes
 		symbol = _tokenSymbol;                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = _totalSupply_.mul(10 ** decimals);
+		_totalSupply = _totalSupply_.mul(uint256(10 ** decimals));
 		balances[msg.sender] = _totalSupply;
 		functional = false;
 	}
@@ -198,15 +198,6 @@ contract CompanyToken is ICompanyToken {
 	function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {
 		return _transfer(msg.sender, _to, _value);
 	}
-	
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool _success) {
-        require(_value <= allowed[_from][msg.sender]);     								// Check allowance
-        
-		_transfer(_from, _to, _value);
-		allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-		
-		return true;
-    }
 	
 	/* Internal transfer, only can be called by this contract */
 	function _transfer(address _from, address _to, uint256 _value) internal returns (bool _success) {
@@ -284,6 +275,16 @@ contract CompanyToken is ICompanyToken {
 		return true;
 	}
 	
+    function burnFrom(address _from, uint256 _value) public returns (bool success) {
+        require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
+        require(_value <= allowance[_from][msg.sender]);    // Check allowance
+        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
+        allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
+        totalSupply -= _value;                              // Update totalSupply
+        Burn(_from, _value);
+        return true;
+    }
+	
 	function companyClose() public onlyController {
 		functional = false;
 		selfdestruct(msg.sender);
@@ -340,7 +341,7 @@ contract CompanyExchanger is ICompanyExchanger {
 	}
 	
 	function closeIt() public onlyController {
-		basicCompanyController.transfer(this.balance);
+		basicCompanyController.transfer(address(this).balance);
 		selfdestruct(msg.sender);
 	}
 	
