@@ -98,16 +98,6 @@ contract BasicCompany is IBasicCompany {
 
 	}
 	
-	/*function activateCompany() public payable onlyOwners returns(bool){ //todo modifier
-		require(msg.value == ICompanyToken(thisCompanyToken).totalSupply());
-		thisCompanyExchanger.transfer(msg.value);
-		ICompanyToken(thisCompanyToken).transfer(msg.sender, ICompanyToken(thisCompanyToken).totalSupply());
-		
-		emit ActivateCompany(msg.sender, msg.value);
-		
-		return ICompanyToken(thisCompanyToken).activate();
-	}*/
-	
 	function increaseCapital() public payable onlyOwners returns(bool) {
 		require(msg.value > 0); 
 		uint256 tokens = ICompanyExchanger(thisCompanyExchanger).capitalDeposit.value(msg.value)();
@@ -184,15 +174,6 @@ contract CompanyToken is ICompanyToken {
 	function() payable public {
 		revert();
 	}
-	
-	/*function activate() public onlyController returns(bool) {
-		require(functional == false);
-		functional = true;
-		
-		emit Activate(msg.sender, functional); 
-		
-		return functional;
-	}*/
 
 	function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {
 		return _transfer(msg.sender, _to, _value);
