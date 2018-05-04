@@ -46,7 +46,7 @@ contract ICompanyToken is ERC20 {
 	function mint(address _to, uint256 _amount) public returns(bool);
 	function burn(address _who, uint256 _amount) public returns(bool);
 	function activate() public returns(bool);
-	
+	function companyClose() public;
 	event Activate(address indexed _who, bool functional);
 	event Mint(address indexed minter, uint256 value);
 	event Burn(address indexed burner, uint256 value);
@@ -55,7 +55,8 @@ contract ICompanyToken is ERC20 {
 contract IBasicCompany {
 	function activateCompany() public payable returns(bool);
 	function increaseCapital() public payable returns(bool);
-	function decreaseCapital(uint256 tokens) public returns(bool);
+	function payTo(address who, uint256 weiAmount) public returns(bool);
+	function payToCompany(uint256 _amountInWei) public;
 	function closeCompany() public;
 	
 	event ActivateCompany(address indexed who, uint256 amount);
@@ -71,13 +72,14 @@ contract ICompanyExchanger {
 	function getTokenPrice() public view returns(uint256);
 	function getCompanyShares() public view returns(uint256);
 	function getCompanyBalance() public view returns(uint256);
+	function closeIt() public;
 }
 
 contract BasicCompany is IBasicCompany {
 	address public thisCompanyExchanger;
 	address public thisCompanyToken;
 		
-	string public name;
+	string public companyName;
 
 	modifier onlyOwners {
 		require(ICompanyToken(thisCompanyToken).balanceOf(msg.sender) > 0);
@@ -85,18 +87,20 @@ contract BasicCompany is IBasicCompany {
 	}
 
 	constructor(string _tokenName, string _tokenSymbol, uint256 _totalSupply) public {
+		companyName = _tokenName;
 		thisCompanyToken = new CompanyToken(_tokenName, _tokenSymbol, _totalSupply);
 		thisCompanyExchanger = new CompanyExchanger(thisCompanyToken);
 	}
 	
 	function() public payable {
 		if(msg.sender == thisCompanyExchanger) {
+			
 		} else {
-			payToCompany(msg.sender, msg.value);
+			payToCompany(msg.value);
 		}
 	}
 	
-	function payToCompany(address _who, uint256 _amountInWei) public {
+	function payToCompany(uint256 _amountInWei) public {
 		thisCompanyExchanger.transfer(_amountInWei);
 		
 	}
@@ -120,7 +124,7 @@ contract BasicCompany is IBasicCompany {
 		return ICompanyToken(thisCompanyToken).mint(msg.sender, tokens);
 	}
 	
-	function payTo(address who, uint256 weiAmount) public onlyOwners {
+	function payTo(address who, uint256 weiAmount) public onlyOwners returns(bool) {
 		uint256 tokens = ICompanyExchanger(thisCompanyExchanger)._withdraw(weiAmount);
 		ICompanyToken(thisCompanyToken).burn(msg.sender, tokens);
 		who.transfer(weiAmount);
@@ -173,8 +177,8 @@ contract CompanyToken is ICompanyToken {
 		name = _tokenName;                                   	// Set the name for display purposes
 		symbol = _tokenSymbol;                               				// Set the symbol for display purposes
 		decimals = 18;                            					// Amount of decimals for display purposes
-		_totalSupply = _totalSupply_;
-		balances[msg.sender] = _totalSupply_;
+		_totalSupply = _totalSupply_.mul(10 ** decimals);
+		balances[msg.sender] = _totalSupply;
 		functional = false;
 	}
 	
@@ -280,7 +284,7 @@ contract CompanyToken is ICompanyToken {
 		return true;
 	}
 	
-	function companyClose() public {
+	function companyClose() public onlyController {
 		functional = false;
 		selfdestruct(msg.sender);
 	}
@@ -319,7 +323,6 @@ contract CompanyExchanger is ICompanyExchanger {
 
 	function() public payable {
 		tokenPriceCalculator();
-		//emit Transfer(msg.sender, this, msg.value);
 	}
 	
 	function capitalDeposit() public payable onlyController returns (uint256 tokens) {
