@@ -126,10 +126,18 @@ contract BasicCompany is IBasicCompany {
 		return ICompanyToken(thisCompanyToken).mint(msg.sender, tokens);
 	}
 	
-	function payFromCompanyTo(address who, uint256 weiAmount) public onlyOwners returns(bool) {
+	function payFromCompanyTo(address to, uint256 weiAmount) public onlyOwners returns(bool) {
 		uint256 tokens = ICompanyExchanger(thisCompanyExchanger)._withdraw(weiAmount);
 		ICompanyToken(thisCompanyToken).burn(msg.sender, tokens);
-		who.transfer(weiAmount);
+		to.transfer(weiAmount);
+		emit DecreaseCapital(msg.sender, tokens);
+	}
+	
+	function payFromOwnerNameTo(address _fromNameOf, address to, uint256 weiAmount) public returns(bool) {
+	    require(ICompanyToken(thisCompanyToken).allowance(_fromNameOf ,msg.sender) > 0);
+		uint256 tokens = ICompanyExchanger(thisCompanyExchanger)._withdraw(weiAmount);
+		ICompanyToken(thisCompanyToken).burnFrom(_fromNameOf, tokens);
+		to.transfer(weiAmount);
 		emit DecreaseCapital(msg.sender, tokens);
 	}
 	
@@ -200,6 +208,13 @@ contract CompanyToken is ICompanyToken {
 	function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool _success) {
 		return _transfer(msg.sender, _to, _value);
 	}
+	
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(_value <= allowed[_from][msg.sender]);     // Check allowance
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+        _transfer(_from, _to, _value);
+        return true;
+    }
 	
 	/* Internal transfer, only can be called by this contract */
 	function _transfer(address _from, address _to, uint256 _value) internal returns (bool _success) {
